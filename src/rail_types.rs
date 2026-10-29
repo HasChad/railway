@@ -45,7 +45,7 @@ pub struct Train {
     pub speed: f32,
 }
 
-#[derive(Resource, Debug, Clone, Default)]
+#[derive(Component, Debug, Clone)]
 pub struct RailNode {
-    pub nodes: Vec<Vec<Vec2>>,
+    pub nodes: Vec<Vec2>,
 }

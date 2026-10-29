@@ -51,7 +51,7 @@ pub fn place_rail_tile(
     camera_query: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     m_input: Res<ButtonInput<MouseButton>>,
-    mut rail_nodes: ResMut<RailNode>,
+    mut railnodes_query: Query<&mut RailNode>,
 ) {
     let (camera, camera_transform) = *camera_query;
 
@@ -69,8 +69,8 @@ pub fn place_rail_tile(
                 position: snap_point,
                 rotation_deg: 0.0,
                 ports: vec![
-                    Port::new(Vec2::new(25.0, 0.0), 90.0),
                     Port::new(Vec2::new(-25.0, 0.0), -90.0),
+                    Port::new(Vec2::new(25.0, 0.0), 90.0),
                 ],
             };
 
@@ -78,35 +78,51 @@ pub fn place_rail_tile(
                 placed.clone(),
                 Transform::from_translation(placed.position.extend(0.0)),
                 Sprite::from_image(asset_server.load("rail.png")),
+                Name::new("Straight Rail"),
             ));
 
             let nd1 = placed.position + placed.ports[0].offset;
             let nd2 = placed.position + placed.ports[1].offset;
             let mut pushed = false;
 
-            for nodes in rail_nodes.nodes.iter_mut() {
-                if *nodes.last().unwrap() == nd1 {
-                    nodes.push(nd1);
-                    nodes.push(nd2);
+            for mut rail_nodes in railnodes_query.iter_mut() {
+                if *rail_nodes.nodes.last().unwrap() == nd1 {
+                    rail_nodes.nodes.push(nd1);
+                    rail_nodes.nodes.push(nd2);
                     pushed = true;
-                } else if *nodes.last().unwrap() == nd2 {
-                    nodes.push(nd2);
-                    nodes.push(nd1);
+                } else if *rail_nodes.nodes.last().unwrap() == nd2 {
+                    rail_nodes.nodes.push(nd2);
+                    rail_nodes.nodes.push(nd1);
+                    pushed = true;
+                } else if *rail_nodes.nodes.first().unwrap() == nd1 {
+                    let mut updated_node = vec![nd2, nd1];
+                    updated_node.append(&mut rail_nodes.nodes);
+                    rail_nodes.nodes = updated_node;
+                    pushed = true;
+                } else if *rail_nodes.nodes.first().unwrap() == nd2 {
+                    let mut updated_node = vec![nd1, nd2];
+                    updated_node.append(&mut rail_nodes.nodes);
+                    rail_nodes.nodes = updated_node;
                     pushed = true;
                 }
-                // else if *nodes.first().unwrap() == nd1 {
-                //     nodes.push(nd1);
-                //     nodes.push(nd2);
-                //     pushed = true;
-                // } else if *nodes.first().unwrap() == nd2 {
-                //     nodes.push(nd2);
-                //     nodes.push(nd1);
-                //     pushed = true;
-                // }
             }
 
-            if !pushed {
-                rail_nodes.nodes.push(vec![nd1, nd2]);
+            if !pushed && !railnodes_query.is_empty() {
+                commands.spawn((
+                    RailNode {
+                        nodes: vec![nd1, nd2],
+                    },
+                    Name::new("Rail Node"),
+                ));
+            }
+
+            if railnodes_query.is_empty() {
+                commands.spawn((
+                    RailNode {
+                        nodes: vec![nd1, nd2],
+                    },
+                    Name::new("Rail Node"),
+                ));
             }
         }
     }

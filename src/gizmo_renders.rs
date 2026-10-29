@@ -83,11 +83,11 @@ pub fn draw_ports(rail_query: Query<&PlacedRail>, mut gizmos: Gizmos) {
     }
 }
 
-pub fn draw_nodes(rail_nodes: Res<RailNode>, mut gizmos: Gizmos) {
-    for nodes in rail_nodes.nodes.iter() {
-        for (i, node) in nodes.iter().enumerate() {
-            if i < nodes.len() - 1 {
-                gizmos.line_2d(*node, nodes[i + 1], MAGENTA);
+pub fn draw_nodes(railnodes_query: Query<&RailNode>, mut gizmos: Gizmos) {
+    for rail_nodes in railnodes_query.iter() {
+        for (i, node) in rail_nodes.nodes.iter().enumerate() {
+            if i < rail_nodes.nodes.len() - 1 {
+                gizmos.line_2d(*node, rail_nodes.nodes[i + 1], MAGENTA);
             }
         }
     }
