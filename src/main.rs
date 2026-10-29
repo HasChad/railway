@@ -41,8 +41,11 @@ fn main() {
         // systems
         .add_systems(Startup, setup)
         .add_systems(Update, appstate_toggler)
-        .add_systems(Update, place_rail_tile.run_if(in_state(AppState::Play)))
-        .add_systems(Update, (draw_grid, draw_ports, draw_nodes))
+        .add_systems(
+            Update,
+            (place_rail, remove_rail).run_if(in_state(AppState::Play)),
+        )
+        .add_systems(Update, (draw_grid, draw_ports, draw_nodes).chain())
         .add_systems(
             FixedUpdate,
             camera_controls.run_if(in_state(AppState::Play)),

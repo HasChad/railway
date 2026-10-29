@@ -1,7 +1,7 @@
 use bevy::{
     color::palettes::{
         basic::WHITE,
-        css::{MAGENTA, YELLOW},
+        css::{BLUE, MAGENTA, RED, YELLOW},
     },
     prelude::*,
 };
@@ -90,5 +90,8 @@ pub fn draw_nodes(railnodes_query: Query<&RailNode>, mut gizmos: Gizmos) {
                 gizmos.line_2d(*node, rail_nodes.nodes[i + 1], MAGENTA);
             }
         }
+
+        gizmos.rect_2d(*rail_nodes.nodes.first().unwrap(), Vec2::new(10., 10.), RED);
+        gizmos.rect_2d(*rail_nodes.nodes.last().unwrap(), Vec2::new(10., 10.), BLUE);
     }
 }

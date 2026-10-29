@@ -5,7 +5,7 @@ use bevy::{
 };
 
 use crate::{
-    rail_types::{PieceKind, PlacedRail, Port, RailNode},
+    rail_types::{PlacedRail, RailNode},
     setup::SPACING,
 };
 
@@ -45,84 +45,99 @@ pub fn camera_controls(
     }
 }
 
-pub fn place_rail_tile(
+pub fn place_rail(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     camera_query: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     m_input: Res<ButtonInput<MouseButton>>,
+    placed_rail_query: Query<&PlacedRail>,
     mut railnodes_query: Query<&mut RailNode>,
 ) {
     let (camera, camera_transform) = *camera_query;
 
     if let Some(cursor_position) = window.cursor_position()
         && let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position)
+        && m_input.just_pressed(MouseButton::Left)
     {
-        let snap_point = Vec2::new(
-            (world_pos.x / SPACING).round() * SPACING,
-            (world_pos.y / SPACING).round() * SPACING,
-        );
+        let snap_point = (world_pos / SPACING).round() * SPACING;
 
-        if m_input.just_pressed(MouseButton::Left) {
-            let placed = PlacedRail {
-                kind: PieceKind::Straight,
-                position: snap_point,
-                rotation_deg: 0.0,
-                ports: vec![
-                    Port::new(Vec2::new(-25.0, 0.0), -90.0),
-                    Port::new(Vec2::new(25.0, 0.0), 90.0),
-                ],
-            };
+        for placed_rail in placed_rail_query.iter() {
+            if placed_rail.position == snap_point {
+                return;
+            }
+        }
 
+        let placed = PlacedRail::straight(snap_point, &asset_server);
+
+        commands.spawn((
+            placed.clone(),
+            Transform::from_translation(placed.position.extend(0.0)),
+            Sprite::from_image(placed.sprite),
+            Name::new("Straight Rail"),
+        ));
+
+        let nd1 = placed.position + placed.ports[0].offset;
+        let nd2 = placed.position + placed.ports[1].offset;
+        let mut pushed = false;
+
+        for mut rail_nodes in railnodes_query.iter_mut() {
+            if *rail_nodes.nodes.last().unwrap() == nd1 {
+                rail_nodes.nodes.push(nd2);
+                pushed = true;
+            } else if *rail_nodes.nodes.last().unwrap() == nd2 {
+                rail_nodes.nodes.push(nd1);
+                pushed = true;
+            } else if *rail_nodes.nodes.first().unwrap() == nd1 {
+                let mut updated_node = vec![nd2];
+                updated_node.append(&mut rail_nodes.nodes);
+                rail_nodes.nodes = updated_node;
+                pushed = true;
+            } else if *rail_nodes.nodes.first().unwrap() == nd2 {
+                let mut updated_node = vec![nd1];
+                updated_node.append(&mut rail_nodes.nodes);
+                rail_nodes.nodes = updated_node;
+                pushed = true;
+            }
+        }
+
+        if railnodes_query.is_empty() {
             commands.spawn((
-                placed.clone(),
-                Transform::from_translation(placed.position.extend(0.0)),
-                Sprite::from_image(asset_server.load("rail.png")),
-                Name::new("Straight Rail"),
+                RailNode {
+                    nodes: vec![nd1, nd2],
+                },
+                Name::new("Rail Node"),
             ));
+        } else if !pushed {
+            commands.spawn((
+                RailNode {
+                    nodes: vec![nd1, nd2],
+                },
+                Name::new("Rail Node"),
+            ));
+        }
+    }
+}
 
-            let nd1 = placed.position + placed.ports[0].offset;
-            let nd2 = placed.position + placed.ports[1].offset;
-            let mut pushed = false;
+pub fn remove_rail(
+    mut commands: Commands,
+    camera_query: Single<(&Camera, &GlobalTransform)>,
+    window: Single<&Window>,
+    m_input: Res<ButtonInput<MouseButton>>,
+    placed_rail_query: Query<(&PlacedRail, Entity)>,
+    // mut railnodes_query: Query<&mut RailNode>,
+) {
+    let (camera, camera_transform) = *camera_query;
 
-            for mut rail_nodes in railnodes_query.iter_mut() {
-                if *rail_nodes.nodes.last().unwrap() == nd1 {
-                    rail_nodes.nodes.push(nd1);
-                    rail_nodes.nodes.push(nd2);
-                    pushed = true;
-                } else if *rail_nodes.nodes.last().unwrap() == nd2 {
-                    rail_nodes.nodes.push(nd2);
-                    rail_nodes.nodes.push(nd1);
-                    pushed = true;
-                } else if *rail_nodes.nodes.first().unwrap() == nd1 {
-                    let mut updated_node = vec![nd2, nd1];
-                    updated_node.append(&mut rail_nodes.nodes);
-                    rail_nodes.nodes = updated_node;
-                    pushed = true;
-                } else if *rail_nodes.nodes.first().unwrap() == nd2 {
-                    let mut updated_node = vec![nd1, nd2];
-                    updated_node.append(&mut rail_nodes.nodes);
-                    rail_nodes.nodes = updated_node;
-                    pushed = true;
-                }
-            }
+    if let Some(cursor_position) = window.cursor_position()
+        && let Ok(world_pos) = camera.viewport_to_world_2d(camera_transform, cursor_position)
+        && m_input.just_pressed(MouseButton::Right)
+    {
+        let snap_point = (world_pos / SPACING).round() * SPACING;
 
-            if !pushed && !railnodes_query.is_empty() {
-                commands.spawn((
-                    RailNode {
-                        nodes: vec![nd1, nd2],
-                    },
-                    Name::new("Rail Node"),
-                ));
-            }
-
-            if railnodes_query.is_empty() {
-                commands.spawn((
-                    RailNode {
-                        nodes: vec![nd1, nd2],
-                    },
-                    Name::new("Rail Node"),
-                ));
+        for (placed_rail, entity) in placed_rail_query.iter() {
+            if placed_rail.position == snap_point {
+                commands.entity(entity).despawn();
             }
         }
     }

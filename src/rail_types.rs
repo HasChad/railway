@@ -20,22 +20,30 @@ pub enum PieceKind {
     // Split,
 }
 
-#[derive(Debug, Clone)]
-pub struct RailPieceType {
-    pub kind: PieceKind,
-    pub position: Vec2,
-    pub rotation_deg: f32,
-    pub ports: Vec<Port>,
-    pub path: Vec<Vec2>, // polyline / bezier control points
-    pub sprite: Handle<Image>,
-}
-
 #[derive(Component, Debug, Clone)]
 pub struct PlacedRail {
     pub kind: PieceKind,
     pub position: Vec2,
     pub rotation_deg: f32,
     pub ports: Vec<Port>,
+    pub path: Vec<Vec2>,
+    pub sprite: Handle<Image>,
+}
+
+impl PlacedRail {
+    pub fn straight(position: Vec2, asset_server: &AssetServer) -> PlacedRail {
+        PlacedRail {
+            kind: PieceKind::Straight,
+            position,
+            rotation_deg: 0.0,
+            ports: vec![
+                Port::new(Vec2::new(-50.0, 0.0), -90.0),
+                Port::new(Vec2::new(50.0, 0.0), 90.0),
+            ],
+            path: vec![Vec2::new(-50.0, 0.0), Vec2::new(50.0, 0.0)],
+            sprite: asset_server.load("rail.png"),
+        }
+    }
 }
 
 #[derive(Component, Debug, Clone)]
