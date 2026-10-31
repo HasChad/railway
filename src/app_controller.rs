@@ -51,7 +51,6 @@ pub fn place_rail(
     camera_query: Single<(&Camera, &GlobalTransform)>,
     window: Single<&Window>,
     m_input: Res<ButtonInput<MouseButton>>,
-    placed_rail_query: Query<&PlacedRail>,
     mut railnodes_query: Query<&mut RailNode>,
 ) {
     let (camera, camera_transform) = *camera_query;
@@ -62,9 +61,11 @@ pub fn place_rail(
     {
         let snap_point = (world_pos / SPACING).round() * SPACING;
 
-        for placed_rail in placed_rail_query.iter() {
-            if placed_rail.position == snap_point {
-                return;
+        for rail_node in railnodes_query.iter() {
+            for node in rail_node.nodes.iter() {
+                if snap_point == *node {
+                    return;
+                }
             }
         }
 
@@ -77,41 +78,37 @@ pub fn place_rail(
             Name::new("Straight Rail"),
         ));
 
-        let nd1 = placed.position + placed.ports[0].offset;
-        let nd2 = placed.position + placed.ports[1].offset;
+        let nd1 = placed.position + placed.path[0];
+        let nd2 = placed.position + placed.path[1];
+        let nd3 = placed.position + placed.path[2];
         let mut pushed = false;
 
         for mut rail_nodes in railnodes_query.iter_mut() {
             if *rail_nodes.nodes.last().unwrap() == nd1 {
                 rail_nodes.nodes.push(nd2);
+                rail_nodes.nodes.push(nd3);
                 pushed = true;
-            } else if *rail_nodes.nodes.last().unwrap() == nd2 {
+            } else if *rail_nodes.nodes.last().unwrap() == nd3 {
+                rail_nodes.nodes.push(nd2);
                 rail_nodes.nodes.push(nd1);
                 pushed = true;
             } else if *rail_nodes.nodes.first().unwrap() == nd1 {
-                let mut updated_node = vec![nd2];
+                let mut updated_node = vec![nd3, nd2];
                 updated_node.append(&mut rail_nodes.nodes);
                 rail_nodes.nodes = updated_node;
                 pushed = true;
-            } else if *rail_nodes.nodes.first().unwrap() == nd2 {
-                let mut updated_node = vec![nd1];
+            } else if *rail_nodes.nodes.first().unwrap() == nd3 {
+                let mut updated_node = vec![nd2, nd1];
                 updated_node.append(&mut rail_nodes.nodes);
                 rail_nodes.nodes = updated_node;
                 pushed = true;
             }
         }
 
-        if railnodes_query.is_empty() {
+        if railnodes_query.is_empty() || !pushed {
             commands.spawn((
                 RailNode {
-                    nodes: vec![nd1, nd2],
-                },
-                Name::new("Rail Node"),
-            ));
-        } else if !pushed {
-            commands.spawn((
-                RailNode {
-                    nodes: vec![nd1, nd2],
+                    nodes: vec![nd1, nd2, nd3],
                 },
                 Name::new("Rail Node"),
             ));

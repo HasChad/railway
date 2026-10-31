@@ -2,13 +2,16 @@ use bevy::prelude::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Port {
-    pub offset: Vec2,
+    pub position: Vec2,
     pub facing_deg: f32,
 }
 
 impl Port {
-    pub fn new(offset: Vec2, facing_deg: f32) -> Self {
-        Self { offset, facing_deg }
+    pub fn new(position: Vec2, facing_deg: f32) -> Self {
+        Self {
+            position,
+            facing_deg,
+        }
     }
 }
 
@@ -40,7 +43,11 @@ impl PlacedRail {
                 Port::new(Vec2::new(-50.0, 0.0), -90.0),
                 Port::new(Vec2::new(50.0, 0.0), 90.0),
             ],
-            path: vec![Vec2::new(-50.0, 0.0), Vec2::new(50.0, 0.0)],
+            path: vec![
+                Vec2::new(-50.0, 0.0),
+                Vec2::new(0.0, 0.0),
+                Vec2::new(50.0, 0.0),
+            ],
             sprite: asset_server.load("rail.png"),
         }
     }

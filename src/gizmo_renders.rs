@@ -70,8 +70,8 @@ pub fn draw_ports(rail_query: Query<&PlacedRail>, mut gizmos: Gizmos) {
     for rail in rail_query.into_iter() {
         for port in rail.ports.iter() {
             let port_pos = Vec2::new(
-                rail.position.x + port.offset.x,
-                rail.position.y + port.offset.y,
+                rail.position.x + port.position.x,
+                rail.position.y + port.position.y,
             );
 
             let rad = port.facing_deg.to_radians();
